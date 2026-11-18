@@ -1,5 +1,6 @@
 import {createAccount} from 'genlayer-js'
-import {formatEther, isAddress} from 'viem'
+import {CalldataAddress} from 'genlayer-js/types'
+import {formatEther, hexToBytes, isAddress} from 'viem'
 import {client, finalized, outcome, explorer} from './network.js'
 import './style.css'
 
@@ -171,6 +172,7 @@ async function refresh(requested) {
 async function submit(method, args = []) {
   if (working) return
   const key = site
+  const previousEvents = state.events
   const signer = active
   const dialog = $('confirm')
   working = true
@@ -184,7 +186,8 @@ async function submit(method, args = []) {
   try {
     if (dialog.returnValue !== 'sign') return
     say('Signing and submitting to Stable Studionet…')
-    hash = await client.writeContract({address:deployment.address, functionName:method, args:[key, ...args], account:signer, value:0n})
+    const calldata = method === 'nominate' ? [key, new CalldataAddress(hexToBytes(args[0]))] : [key, ...args]
+    hash = await client.writeContract({address:deployment.address, functionName:method, args:calldata, account:signer, value:0n})
     $('receipts').prepend(link('Transaction submitted ↗', txUrl(hash)))
     say('Submitted. Waiting for validator consensus and finalization…')
     const result = outcome(await finalized(hash), hash)
@@ -197,8 +200,13 @@ async function submit(method, args = []) {
     say('Finalized successfully. Refreshing the chain record…')
     if (site === key) {
       await refresh(key)
-      evidence.push({site:key, event:state.events, ...result})
-      renderJournal(JSON.parse(await read('history', [key, 0])), false)
+      const events = JSON.parse(await read('history', [key, 0]))
+      if (site === key) {
+        const action = {claim:'CLAIMED', nominate:'NOMINATED', accept:'TRANSFERRED', cancel:'CANCELED', release:'RELEASED'}[method]
+        const event = events.find(item => item.action === action && item.actor === signer.address.toLowerCase() && item.events === previousEvents + 1)
+        if (event) evidence.push({site:key, event:event.events, ...result})
+        renderJournal(events, false)
+      }
     }
     say('Finalized successfully.')
   } catch {
