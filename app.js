@@ -264,7 +264,7 @@ async function initialize() {
     if (!response.ok) throw new Error('Deployment unavailable')
     deployment = await response.json()
     if (!isAddress(deployment.address)) throw new Error('Invalid deployment')
-    const evidenceResponse = await fetch(new URL('evidence.json', document.baseURI))
+    const evidenceResponse = await fetch(new URL('evidence.json', document.baseURI), {cache:'no-cache'})
     if (evidenceResponse.ok && evidenceResponse.headers.get('content-type')?.includes('json')) evidence = await evidenceResponse.json()
     $('contract-link').href = explorer + '/address/' + deployment.address
     $('contract-link').hidden = false
