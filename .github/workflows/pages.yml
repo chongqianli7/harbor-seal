@@ -30,3 +30,18 @@ jobs:
           path: dist
       - id: deployment
         uses: actions/deploy-pages@v4
+  browser-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: |
+          npm exec vite preview -- --host 127.0.0.1 --port 4173 &
+          curl --retry 10 --retry-connrefused --fail --silent http://127.0.0.1:4173/ -o /dev/null
+          HARBOR_URL=http://127.0.0.1:4173/ npm run test:ui

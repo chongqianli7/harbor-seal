@@ -4,5 +4,6 @@
   "status": "FINALIZED",
   "execution": "SUCCESS",
   "reason": null,
-  "address": "0x6d6657926C2EcEC0E5D2552995cE83d85cC3Fa1D"
+  "address": "0x6d6657926C2EcEC0E5D2552995cE83d85cC3Fa1D",
+  "consensus": "MAJORITY_AGREE"
 }

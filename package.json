@@ -6,7 +6,9 @@
     "test": "python3 -m unittest discover -s tests",
     "dev": "vite",
     "build": "vite build --base=./",
-    "deploy": "node scripts/deploy.mjs"
+    "deploy": "node scripts/deploy.mjs",
+    "verify": "node scripts/verify.mjs",
+    "test:ui": "node scripts/smoke.mjs"
   },
   "license": "MIT",
   "type": "module",
@@ -15,6 +17,7 @@
     "viem": "2.58.0"
   },
   "devDependencies": {
+    "playwright": "1.65.1",
     "vite": "6.4.6"
   }
 }
