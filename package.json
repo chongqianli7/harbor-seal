@@ -1,0 +1,21 @@
+{
+  "name": "harbor-seal",
+  "version": "1.0.0",
+  "description": "Consensus-verified stewardship handovers for GitHub Pages.",
+  "scripts": {
+    "test": "python3 -m unittest discover -s tests",
+    "dev": "vite",
+    "build": "vite build --base=./",
+    "deploy": "node scripts/deploy.mjs"
+  },
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "genlayer-js": "1.1.8",
+    "viem": "2.58.0"
+  },
+  "devDependencies": {
+    "playwright": "1.65.1",
+    "vite": "6.4.6"
+  }
+}

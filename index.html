@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#081619"><title>Harbor Seal · Stewardship Registry</title></head>
+<body>
+<header class="top"><a href="./" class="brand"><span class="stamp">H</span> HARBOR SEAL</a><a href="https://explorer-studio.genlayer.com" class="network">◉ Stable Studionet</a></header>
+<main>
+<section class="hero"><p class="eyebrow">WEB STEWARDSHIP REGISTRY</p><h1>Prove the site.<br><em>Pass the seal.</em></h1><p class="deck">An independent record of who operates a public GitHub Pages project. Publish a proof on the site, then let GenLayer validators verify the claim and seal the handover.</p><a class="jump" href="#registry">Open the registry ↓</a></section>
+<section id="registry" aria-labelledby="registry-title">
+<div class="section-open"><header><p class="eyebrow">PUBLIC RECORD</p><h2 id="registry-title">Inspect a site</h2></header><form id="lookup"><label for="site-input">GitHub Pages project</label><div class="row"><input id="site-input" required placeholder="account/project" spellcheck="false"><button>Look up</button></div><a href="#site=chongqianli7%2Fharbor-seal">Open the public example</a></form></div>
+<p id="read-status" role="status"></p>
+<div class="workspace">
+<article id="record" aria-label="Site stewardship"></article>
+<aside aria-label="Signing controls"><p class="eyebrow">SIGNING DESK</p><h3>Operator wallet</h3><div id="wallets"></div><button id="add-wallet" type="button">Create test wallet</button><button id="reset" class="quiet" type="button" hidden>Reset wallets</button><p class="muted">Temporary wallets stay in this tab. Closing or reloading the page discards them. Use only on Stable Studionet.</p><div id="actions"></div><p id="feedback" role="status" aria-live="polite"></p><div id="receipts"></div></aside>
+</div>
+<div class="history"><div><p class="eyebrow">CHAIN RECORD</p><h2>Stewardship journal</h2></div><ol id="journal"></ol><button id="older" hidden>Load earlier entries</button></div>
+</section>
+</main>
+<footer><a href="https://github.com/chongqianli7/harbor-seal">Source and documentation ↗</a> <a id="contract-link" hidden>Intelligent Contract ↗</a></footer>
+<dialog id="confirm"><form method="dialog"><h3>Confirm transaction</h3><p id="intent"></p><div class="row"><button value="cancel" class="quiet">Cancel</button><button value="sign">Sign and send</button></div></form></dialog>
+<script type="module" src="/app.js"></script>
+</body>
+</html>
