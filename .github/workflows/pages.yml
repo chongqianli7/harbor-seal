@@ -7,11 +7,11 @@ permissions:
   contents: read
   pages: write
   id-token: write
-concurrency:
-  group: pages
-  cancel-in-progress: false
 jobs:
   deploy:
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -31,6 +31,7 @@ jobs:
       - id: deployment
         uses: actions/deploy-pages@v4
   browser-smoke:
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,9 +40,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: google-chrome --version
       - run: npm run build
       - run: |
           npm exec vite preview -- --host 127.0.0.1 --port 4173 &
           curl --retry 10 --retry-connrefused --fail --silent http://127.0.0.1:4173/ -o /dev/null
-          HARBOR_URL=http://127.0.0.1:4173/ npm run test:ui
+          HARBOR_CHROME_CHANNEL=chrome HARBOR_URL=http://127.0.0.1:4173/ npm run test:ui

@@ -3,7 +3,7 @@ import {chromium} from 'playwright'
 
 const site = 'chongqianli7/harbor-seal'
 const target = (process.env.HARBOR_URL || 'https://chongqianli7.github.io/harbor-seal/') + '#site=' + encodeURIComponent(site)
-const browser = await chromium.launch()
+const browser = await chromium.launch({channel:process.env.HARBOR_CHROME_CHANNEL || undefined})
 try {
   for (const width of [1440, 390, 320]) {
     const page = await browser.newPage({viewport:{width,height:900}, isMobile:width < 500, hasTouch:width < 500})
