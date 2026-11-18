@@ -11,7 +11,11 @@ try {
     await page.getByText('Active seal', {exact:true}).waitFor({timeout:60000})
     assert.equal(await page.locator('#journal li').count(), 3)
     assert.equal(await page.getByRole('link', {name:'Finalized receipt'}).count(), 3)
-    assert(await page.evaluate(() => document.documentElement.scrollWidth === document.documentElement.clientWidth))
+    const viewport = await page.evaluate(() => {
+      const {clientWidth, scrollWidth} = document.documentElement
+      return {clientWidth, scrollWidth}
+    })
+    assert.equal(viewport.scrollWidth, viewport.clientWidth, `Horizontal overflow at ${width}px`)
     await page.getByRole('button', {name:'Create test wallet'}).click()
     const first = await page.locator('#wallets code').innerText()
     await page.getByRole('button', {name:'Create test wallet'}).click()
