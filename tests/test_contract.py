@@ -30,7 +30,8 @@ module.TreeMap = TreeMap
 module.u32 = int
 module.Address = str
 module.gl = types.SimpleNamespace(
-    Contract=object, UserError=UserError,
+    Contract=object, vm=types.SimpleNamespace(UserError=UserError),
+    message_raw={"datetime":"2026-11-25T10:00:00+00:00"},
     public=types.SimpleNamespace(view=lambda fn: fn, write=lambda fn: fn),
     message=types.SimpleNamespace(sender_address=WALLETS[0]),
     eq_principle=types.SimpleNamespace(strict_eq=observe_twice),
@@ -45,13 +46,14 @@ spec.loader.exec_module(contract)
 
 class HarborSealTest(unittest.TestCase):
     def setUp(self):
+        module.gl.message_raw["datetime"] = "2026-11-25T10:00:00+00:00"
         self.registry = contract.HarborSeal(REGISTRY)
         self.registry.sites = TreeMap()
         self.registry.journal = TreeMap()
         module.gl.message.sender_address = WALLETS[0]
 
     def publish(self, revision, wallet):
-        proof = f"harbor-seal:v1:{REGISTRY}:{SITE}:{revision}:{wallet}".encode()
+        proof = f"harbor-seal:v2:{REGISTRY}:{SITE}:{revision}:{wallet}".encode()
         module.gl.nondet.web.get = lambda _: types.SimpleNamespace(status=200, body=proof)
 
     def test_handover_and_replay(self):
@@ -97,3 +99,32 @@ class HarborSealTest(unittest.TestCase):
         module.gl.nondet.web.get = lambda _: types.SimpleNamespace(status=404)
         with self.assertRaisesRegex(UserError, "HTTP_404"):
             self.registry.claim(SITE, 1)
+
+    def test_expiry_renewal_and_revision(self):
+        self.publish(1, WALLETS[0])
+        self.registry.claim(SITE, 1, 120)
+        self.registry.nominate(SITE, WALLETS[1])
+        module.gl.message_raw["datetime"] = "2026-11-25T10:02:00+00:00"
+        module.gl.message.sender_address = WALLETS[1]
+        with self.assertRaisesRegex(UserError, "SEAL_EXPIRED"):
+            self.registry.accept(SITE, 2)
+        module.gl.message.sender_address = WALLETS[0]
+        with self.assertRaisesRegex(UserError, "STALE_REVISION"):
+            self.registry.renew(SITE, 1)
+        self.publish(2, WALLETS[0])
+        self.registry.renew(SITE, 2)
+        self.assertEqual(self.registry._load(SITE)["nominee"], "")
+        self.registry.nominate(SITE, WALLETS[1])
+        self.publish(3, WALLETS[1])
+        module.gl.message.sender_address = WALLETS[1]
+        self.registry.accept(SITE, 3)
+        self.assertEqual(self.registry._load(SITE)["owner"], WALLETS[1])
+
+    def test_unavailable_proof_does_not_extend_or_revoke(self):
+        self.publish(1, WALLETS[0])
+        self.registry.claim(SITE, 1, 120)
+        prior = self.registry.record(SITE)
+        module.gl.nondet.web.get = lambda _: types.SimpleNamespace(status=503)
+        with self.assertRaisesRegex(UserError, "HTTP_503"):
+            self.registry.renew(SITE, 2)
+        self.assertEqual(self.registry.record(SITE), prior)

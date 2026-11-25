@@ -1,9 +1,9 @@
 {
-  "registry": "b5bb74a8c26660b3cff0b6a0a0efba03",
-  "hash": "0x1d581382b6a5973f6beae0a1c16a98a885a0e7971bbef5db32d861bee25c23b9",
+  "registry": "766f371d85a9a67f5367342bfe47ecda",
+  "address": "0x3b93C216F8b72B518DafcB5eC8E792D355b600Ad",
+  "hash": "0x1819bd7a62cf5c8a097a514d1749535a8642f567cd296da5a173d679897dc499",
   "status": "FINALIZED",
   "execution": "SUCCESS",
-  "reason": null,
-  "address": "0x6d6657926C2EcEC0E5D2552995cE83d85cC3Fa1D",
-  "consensus": "MAJORITY_AGREE"
+  "version": 2,
+  "sourceSha256": "e638cf0327e5fbaa35e0856768691ee8e430f019c23ba98cd8e9da1727c0ede5"
 }

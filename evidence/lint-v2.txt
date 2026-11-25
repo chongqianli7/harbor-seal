@@ -1,0 +1,6 @@
+
+✓ Lint passed (3 checks)
+✓ Validation passed
+  Contract: HarborSeal
+  Methods: 9 (3 view, 6 write)
+e638cf0327e5fbaa35e0856768691ee8e430f019c23ba98cd8e9da1727c0ede5  contracts/harbor_seal.py

@@ -1,0 +1,9 @@
+{
+  "registry": "b5bb74a8c26660b3cff0b6a0a0efba03",
+  "hash": "0x1d581382b6a5973f6beae0a1c16a98a885a0e7971bbef5db32d861bee25c23b9",
+  "status": "FINALIZED",
+  "execution": "SUCCESS",
+  "reason": null,
+  "address": "0x6d6657926C2EcEC0E5D2552995cE83d85cC3Fa1D",
+  "consensus": "MAJORITY_AGREE"
+}

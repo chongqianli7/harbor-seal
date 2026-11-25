@@ -2,7 +2,7 @@
 import hashlib
 import json
 import re
-import typing
+from datetime import datetime
 
 from genlayer import *
 
@@ -14,12 +14,12 @@ class HarborSeal(gl.Contract):
 
     def __init__(self, registry_id: str):
         if not re.fullmatch(r"[0-9a-f]{32}", registry_id):
-            raise gl.UserError("INVALID_REGISTRY_ID")
+            raise gl.vm.UserError("INVALID_REGISTRY_ID")
         self.registry_id = registry_id
 
     def _key(self, site: str) -> str:
         if not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?/[a-z0-9][a-z0-9-]{0,62}", site):
-            raise gl.UserError("INVALID_SITE")
+            raise gl.vm.UserError("INVALID_SITE")
         return site
 
     def _load(self, site: str) -> dict:
@@ -27,19 +27,19 @@ class HarborSeal(gl.Contract):
 
     def _empty(self, site: str) -> dict:
         self._key(site)
-        return {"owner": "", "nominee": "", "revision": 0, "events": 0}
+        return {"owner": "", "nominee": "", "revision": 0, "events": 0, "expires_at": 0, "lease_seconds": 0}
 
     def _save(self, site: str, state: dict, action: str, source: str = "", digest: str = "") -> None:
         state["events"] += 1
         self.sites[site] = json.dumps(state)
         event = dict(state)
-        event.update(action=action, actor=str(gl.message.sender_address).lower(), source=source, digest=digest)
+        event.update(timestamp=self._now(), action=action, actor=str(gl.message.sender_address).lower(), source=source, digest=digest)
         self.journal[site + ":" + str(state["events"])] = json.dumps(event)
 
     def _prove(self, site: str, revision: int, actor: str) -> tuple:
         host, project = site.split("/")
-        source = f"https://{host}.github.io/{project}/harbor-proof-{revision}.txt"
-        expected = f"harbor-seal:v1:{self.registry_id}:{site}:{revision}:{actor}"
+        source = f"https://{host}.github.io/{project}/harbor-v2-proof-{self.registry_id}-{revision}.txt"
+        expected = f"harbor-seal:v2:{self.registry_id}:{site}:{revision}:{actor}"
 
         def observe() -> str:
             try:
@@ -55,8 +55,15 @@ class HarborSeal(gl.Contract):
 
         result = gl.eq_principle.strict_eq(observe)
         if len(result) != 64:
-            raise gl.UserError(result)
+            raise gl.vm.UserError(result)
         return source, result
+
+    def _now(self) -> int:
+        return int(datetime.fromisoformat(gl.message_raw["datetime"]).timestamp())
+
+    def _require_current(self, state: dict) -> None:
+        if self._now() >= state["expires_at"]:
+            raise gl.vm.UserError("SEAL_EXPIRED")
 
     @gl.public.view
     def context(self) -> str:
@@ -74,11 +81,24 @@ class HarborSeal(gl.Contract):
                            for i in range(end, max(end - 12, 0), -1)])
 
     @gl.public.write
-    def claim(self, site: str, revision: u32) -> None:
+    def claim(self, site: str, revision: u32, lease_seconds: u32 = 604800) -> None:
         state = self._load(site)
         if state["owner"]:
-            raise gl.UserError("ALREADY_REGISTERED")
+            raise gl.vm.UserError("ALREADY_REGISTERED")
+        if not 120 <= lease_seconds <= 2592000:
+            raise gl.vm.UserError("INVALID_LEASE_DURATION")
+        state["lease_seconds"] = int(lease_seconds)
         self._activate(site, state, int(revision), "CLAIMED")
+
+    @gl.public.write
+    def renew(self, site: str, revision: u32, lease_seconds: u32 = 604800) -> None:
+        state = self._load(site)
+        if str(gl.message.sender_address).lower() != state["owner"]:
+            raise gl.vm.UserError("OWNER_REQUIRED")
+        if not 120 <= lease_seconds <= 2592000:
+            raise gl.vm.UserError("INVALID_LEASE_DURATION")
+        state["lease_seconds"] = int(lease_seconds)
+        self._activate(site, state, int(revision), "RENEWED")
 
     @gl.public.write
     def nominate(self, site: str, nominee: Address) -> None:
@@ -86,9 +106,10 @@ class HarborSeal(gl.Contract):
         actor = str(gl.message.sender_address).lower()
         target = str(nominee).lower()
         if actor != state["owner"]:
-            raise gl.UserError("OWNER_REQUIRED")
+            raise gl.vm.UserError("OWNER_REQUIRED")
+        self._require_current(state)
         if state["nominee"] or target == actor or target == "0x" + "0" * 40:
-            raise gl.UserError("INVALID_NOMINATION")
+            raise gl.vm.UserError("INVALID_NOMINATION")
         state["nominee"] = target
         self._save(site, state, "NOMINATED")
 
@@ -96,9 +117,9 @@ class HarborSeal(gl.Contract):
     def cancel(self, site: str) -> None:
         state = self._load(site)
         if str(gl.message.sender_address).lower() != state["owner"]:
-            raise gl.UserError("OWNER_REQUIRED")
+            raise gl.vm.UserError("OWNER_REQUIRED")
         if not state["nominee"]:
-            raise gl.UserError("NO_NOMINATION")
+            raise gl.vm.UserError("NO_NOMINATION")
         state["nominee"] = ""
         state["revision"] += 1
         self._save(site, state, "CANCELED")
@@ -107,21 +128,23 @@ class HarborSeal(gl.Contract):
     def accept(self, site: str, revision: u32) -> None:
         state = self._load(site)
         if str(gl.message.sender_address).lower() != state["nominee"]:
-            raise gl.UserError("NOMINEE_REQUIRED")
+            raise gl.vm.UserError("NOMINEE_REQUIRED")
+        self._require_current(state)
         self._activate(site, state, int(revision), "TRANSFERRED")
 
     @gl.public.write
     def release(self, site: str) -> None:
         state = self._load(site)
         if str(gl.message.sender_address).lower() != state["owner"]:
-            raise gl.UserError("OWNER_REQUIRED")
-        state.update(owner="", nominee="", revision=state["revision"] + 1)
+            raise gl.vm.UserError("OWNER_REQUIRED")
+        state.update(owner="", nominee="", revision=state["revision"] + 1, expires_at=0, lease_seconds=0)
         self._save(site, state, "RELEASED")
 
     def _activate(self, site: str, state: dict, revision: int, action: str) -> None:
         if revision != state["revision"] + 1:
-            raise gl.UserError("STALE_REVISION")
+            raise gl.vm.UserError("STALE_REVISION")
         actor = str(gl.message.sender_address).lower()
         source, digest = self._prove(site, revision, actor)
-        state.update(owner=actor, nominee="", revision=revision)
+        state.update(owner=actor, nominee="", revision=revision,
+                     expires_at=self._now() + state["lease_seconds"])
         self._save(site, state, action, source, digest)
